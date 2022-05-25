@@ -34,7 +34,8 @@ static bool is_big_endian(FILE *in) {
   return doswap;
 }
 
-static void bswap_vect(uint32_t *vect, const size_t size) {
+static void bswap_vect(void *vvect, const size_t size) {
+  uint32_t *vect = vvect;
   const size_t nelem = size / sizeof(*vect);
   for (size_t n = 0; n < nelem; ++n) {
     vect[n] = bswap_32(vect[n]);
@@ -121,10 +122,12 @@ static const uint32_t sig2[] = {1430323200, 56, 131072, 56};
 static const char zero268[268];
 
 static void process_2420(FILE *in) {
+  size_t nread;
   assert(is_big_endian(in));
   struct header1 h1;
   assert(sizeof(h1) == 0x60); // 6x16
-  fread(&h1, 1, sizeof h1, in);
+  nread = fread(&h1, 1, sizeof h1, in);
+  assert(nread == sizeof h1);
   bswap_vect(h1.unk1, sizeof h1.unk1);
   bswap_vect(h1.unk2, sizeof h1.unk1);
   bswap_vect(h1.unk3, sizeof h1.unk1);
@@ -139,9 +142,74 @@ static void process_2420(FILE *in) {
   print_header1(&h1, &magic);
 
   char buf[268];
-  fread(buf, 1, sizeof buf, in);
+  nread = fread(buf, 1, sizeof buf, in);
+  assert(nread == sizeof buf);
+  long pos = ftell(in);
   assert(sizeof buf == sizeof zero268);
-  assert(memcmp(buf, zero268, sizeof buf));
+  assert(memcmp(buf, zero268, sizeof buf) == 0);
+
+  pos = ftell(in);
+  //  printf("D: %ld\n", pos);
+  char buf1[10];
+  nread = fread(buf1, 1, sizeof buf1, in);
+  assert(nread == sizeof buf1);
+
+  char buf2[34];
+  nread = fread(buf2, 1, sizeof buf2, in);
+  assert(nread == sizeof buf2);
+
+  uint32_t buf3[44];
+  nread = fread(buf3, 1, sizeof buf3, in);
+  assert(nread == sizeof buf3);
+
+  char buf4[184];
+  nread = fread(buf4, 1, sizeof buf4, in);
+  assert(nread == sizeof buf4);
+  assert(sizeof buf4 <= sizeof zero268);
+  assert(memcmp(buf4, zero268, sizeof buf4) == 0);
+
+  uint32_t buf5[14];
+  nread = fread(buf5, 1, sizeof buf5, in);
+  assert(nread == sizeof buf5);
+
+  char buf6[268];
+  nread = fread(buf6, 1, sizeof buf6, in);
+  assert(nread == sizeof buf6);
+  assert(sizeof buf6 == sizeof zero268);
+  assert(memcmp(buf6, zero268, sizeof buf6) == 0);
+
+  pos = ftell(in);
+  //  printf("D: %ld\n", pos);
+  float buf7[57];
+  nread = fread(buf7, 1, sizeof buf7, in);
+  assert(nread == sizeof buf7);
+  bswap_vect(buf7, sizeof buf7);
+
+  char buf8[160];
+  nread = fread(buf8, 1, sizeof buf8, in);
+  assert(nread == sizeof buf8);
+  assert(sizeof buf8 <= sizeof zero268);
+  assert(memcmp(buf8, zero268, sizeof buf8) == 0);
+
+  uint32_t buf9[23];
+  nread = fread(buf9, 1, sizeof buf9, in);
+  assert(nread == sizeof buf9);
+
+  char buf10[844];
+  nread = fread(buf10, 1, sizeof buf10, in);
+  assert(nread == sizeof buf10);
+  for (int i = 0; i < 4; ++i) {
+    assert(memcmp(buf10 + i * 211, zero268, 211) == 0);
+  }
+
+  uint32_t buf11[1];
+  nread = fread(buf11, 1, sizeof buf11, in);
+  assert(nread == sizeof buf11);
+  assert(buf11[0] == 512);
+
+  pos = ftell(in);
+  //  printf("cur: %ld\n", pos);
+  assert(pos == 2420);
 }
 
 static void process_2428(FILE *in) {
