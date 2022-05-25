@@ -121,6 +121,19 @@ static const uint32_t sig2[] = {1430323200, 56, 131072, 56};
 
 static const char zero268[268];
 
+// s1: 39424
+// s2: 03/30/10
+// s3: 1
+// s4: 16:08
+// s5: INVALIDNMR
+struct S0 {
+  char s1[6];
+  char s2[8];
+  char s3[2];
+  char s4[8];
+  char s5[10];
+};
+
 static void process_2420(FILE *in) {
   size_t nread;
   assert(is_big_endian(in));
@@ -157,34 +170,28 @@ static void process_2420(FILE *in) {
   char buf1[10];
   nread = fread(buf1, 1, sizeof buf1, in);
   assert(nread == sizeof buf1);
+  assert(buf1[0] == 64 || buf1[0] == 65);
+  // assert(buf1[1] == 0 );
+  assert(buf1[2] == 0);
+  assert(buf1[3] == 0);
+  assert(buf1[4] == 0);
+  assert(buf1[5] == 0);
+  // assert(buf1[6] == 0 );
+  assert(buf1[7] == 0);
+  assert(buf1[8] == 0);
+  // assert(buf1[9] == 0 );
 
-  char buf2[34];
-  nread = fread(buf2, 1, sizeof buf2, in);
-  assert(nread == sizeof buf2);
-  const char *cur = buf2;
-  size_t len = strnlen(cur, sizeof buf2);
-  printf("buf2: %.*s\n", len, cur);
-  assert(len == 4 || len == 5);
-  cur += 7;
-  assert(*cur != 0);
-  len = strnlen(cur, sizeof buf2 - (cur - buf2));
-  printf("buf2: %.*s\n", len, cur);
-  assert(len == 8);
-  cur += 7;
-  assert(*cur != 0);
-  len = strnlen(cur, sizeof buf2 - (cur - buf2));
-  printf("buf2: %.*s\n", len, cur);
-  assert(len == 1);
-  cur += 2;
-  assert(*cur != 0);
-  len = strnlen(cur, sizeof buf2 - (cur - buf2));
-  printf("buf2: %.*s\n", len, cur);
-  assert(len == 5);
-  cur += 8;
-  assert(*cur != 0);
-  len = strnlen(cur, sizeof buf2 - (cur - buf2));
-  printf("buf2: %.*s\n", len, cur);
-  assert(len == 10);
+  {
+    struct S0 s0;
+    assert(sizeof s0 == 34);
+    nread = fread(&s0, 1, sizeof s0, in);
+    printf("s0: %.*s - %.*s - %.*s - %.*s - %.*s\n",
+           strnlen(s0.s1, sizeof s0.s1), s0.s1, //
+           strnlen(s0.s2, sizeof s0.s2), s0.s2, //
+           strnlen(s0.s3, sizeof s0.s3), s0.s3, //
+           strnlen(s0.s4, sizeof s0.s4), s0.s4, //
+           strnlen(s0.s5, sizeof s0.s5), s0.s5);
+  }
 
   uint32_t buf3[44];
   nread = fread(buf3, 1, sizeof buf3, in);
