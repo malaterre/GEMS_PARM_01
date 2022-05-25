@@ -136,21 +136,22 @@ struct S0 {
 
 static void process_2420(FILE *in) {
   size_t nread;
+  long pos;
   assert(is_big_endian(in));
-  struct header1 h1;
-  assert(sizeof(h1) == 0x60); // 6x16
-  nread = fread(&h1, 1, sizeof h1, in);
-  assert(nread == sizeof h1);
-  bswap_vect(h1.unk1, sizeof h1.unk1);
-  bswap_vect(h1.unk2, sizeof h1.unk1);
-  bswap_vect(h1.unk3, sizeof h1.unk1);
-  bswap_vect(h1.unk4, sizeof h1.unk1);
-  bswap_vect(h1.unk5, sizeof h1.unk1);
-  bswap_vect(h1.unk6, sizeof h1.unk1);
 
   // group 1, 364 bytes
-  long pos;
   {
+    struct header1 h1;
+    assert(sizeof(h1) == 0x60); // 6x16
+    nread = fread(&h1, 1, sizeof h1, in);
+    assert(nread == sizeof h1);
+    bswap_vect(h1.unk1, sizeof h1.unk1);
+    bswap_vect(h1.unk2, sizeof h1.unk1);
+    bswap_vect(h1.unk3, sizeof h1.unk1);
+    bswap_vect(h1.unk4, sizeof h1.unk1);
+    bswap_vect(h1.unk5, sizeof h1.unk1);
+    bswap_vect(h1.unk6, sizeof h1.unk1);
+
     struct header1_magic magic;
     magic.sig1 = sig1;
     magic.unk2_3 = 2048;
@@ -165,27 +166,31 @@ static void process_2420(FILE *in) {
     assert(memcmp(buf, zero268, sizeof buf) == 0);
   }
 
-  pos = ftell(in);
-  //  printf("D: %ld\n", pos);
-  char buf1[10];
-  nread = fread(buf1, 1, sizeof buf1, in);
-  assert(nread == sizeof buf1);
-  assert(buf1[0] == 64 || buf1[0] == 65);
-  // assert(buf1[1] == 0 );
-  assert(buf1[2] == 0);
-  assert(buf1[3] == 0);
-  assert(buf1[4] == 0);
-  assert(buf1[5] == 0);
-  // assert(buf1[6] == 0 );
-  assert(buf1[7] == 0);
-  assert(buf1[8] == 0);
-  // assert(buf1[9] == 0 );
+  // group 2, 10 bytes:
+  {
+    unsigned char buf1[10];
+    nread = fread(buf1, 1, sizeof buf1, in);
+    assert(nread == sizeof buf1);
+    assert(buf1[0] == 64 || buf1[0] == 65);
+    // assert(buf1[1] == 0 );
+    assert(buf1[2] == 0);
+    assert(buf1[3] == 0);
+    assert(buf1[4] == 0);
+    assert(buf1[5] == 0);
+    // assert(buf1[6] == 0 );
+    assert(buf1[7] == 0);
+    assert(buf1[8] == 0);
+    // assert(buf1[9] == 0 );
+    printf("g2-10: %u - %02x - %02x %u - %02x %u\n", buf1[0], buf1[1], buf1[6],
+           buf1[6], buf1[9], buf1[9]);
+  }
 
+  // group 2, 34 bytes:
   {
     struct S0 s0;
     assert(sizeof s0 == 34);
     nread = fread(&s0, 1, sizeof s0, in);
-    printf("s0: %.*s - %.*s - %.*s - %.*s - %.*s\n",
+    printf("g2-32: %.*s - %.*s - %.*s - %.*s - %.*s\n",
            strnlen(s0.s1, sizeof s0.s1), s0.s1, //
            strnlen(s0.s2, sizeof s0.s2), s0.s2, //
            strnlen(s0.s3, sizeof s0.s3), s0.s3, //
@@ -199,7 +204,6 @@ static void process_2420(FILE *in) {
   bswap_vect(buf3, sizeof buf3);
 
   pos = ftell(in);
-  // printf("D: 0x%lx\n", pos);
   float buf4[46];
   nread = fread(buf4, 1, sizeof buf4, in);
   assert(nread == sizeof buf4);
