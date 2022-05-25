@@ -65,7 +65,14 @@ void print_vect(const uint32_t *vect, const size_t size) {
   printf("\n");
 }
 
-void print_header1(struct header1 *h1) {
+struct header1_magic {
+  const uint32_t *sig1;
+  uint32_t unk2_3;
+  uint32_t unk3_2;
+  uint32_t unk6_1;
+};
+
+void print_header1(struct header1 *h1, const struct header1_magic *magic) {
 
   print_vect(h1->unk1, sizeof h1->unk1);
   print_vect(h1->unk2, sizeof h1->unk1);
@@ -89,17 +96,16 @@ void print_header1(struct header1 *h1) {
   // 6: 999913710,0,1325690852,2
 
   // unk1:
-  static const uint32_t sig1[] = {1430323200, 44, 131072, 44};
-  assert(vect_equal(h1->unk1, sig1, sizeof sig1));
+  assert(vect_equal(h1->unk1, magic->sig1, sizeof h1->unk1));
 
   // unk2:
   assert(0x10000 == h1->unk2[1]);
-  assert(0x0800 == h1->unk2[3]); // 2048
-  assert(0x0000 == h1->unk6[1]);
+  assert(magic->unk2_3 == h1->unk2[3]); // 2048 - 4096
+  // assert(magic->unk6_1 == h1->unk6[1]); // 0x0
 
   // unk3:
-  assert(0x8 == h1->unk3[2]);
-  assert(0x0 == h1->unk3[3]);
+  assert(magic->unk3_2 == h1->unk3[2]); // 8 - 12
+  // assert(0x0 == h1->unk3[3]);
 
   // unk4 / unk5:
   assert(vect_equal(h1->unk4, h1->unk5, sizeof h1->unk4));
@@ -108,6 +114,9 @@ void print_header1(struct header1 *h1) {
   assert(0x0 == h1->unk6[1]);
   assert(0x2 == h1->unk6[3]);
 }
+
+static const uint32_t sig1[] = {1430323200, 44, 131072, 44};
+static const uint32_t sig2[] = {1430323200, 56, 131072, 56};
 
 static void process_2420(FILE *in) {
   assert(is_big_endian(in));
@@ -121,7 +130,11 @@ static void process_2420(FILE *in) {
   bswap_vect(h1.unk5, sizeof h1.unk1);
   bswap_vect(h1.unk6, sizeof h1.unk1);
 
-  print_header1(&h1);
+  struct header1_magic magic;
+  magic.sig1 = sig1;
+  magic.unk2_3 = 2048;
+  magic.unk3_2 = 8;
+  print_header1(&h1, &magic);
 }
 
 static void process_2428(FILE *in) {
@@ -130,16 +143,63 @@ static void process_2428(FILE *in) {
   assert(sizeof(h1) == 0x60); // 6x16
   fread(&h1, 1, sizeof h1, in);
 
-  print_header1(&h1);
+  struct header1_magic magic;
+  magic.sig1 = sig1;
+  magic.unk2_3 = 2048;
+  magic.unk3_2 = 8;
+  print_header1(&h1, &magic);
 }
 
 static void process_3600(FILE *in) {
   assert(!is_big_endian(in));
   struct header1 h1;
   assert(sizeof(h1) == 0x60); // 6x16
-
   fread(&h1, 1, sizeof h1, in);
-  print_header1(&h1);
+
+  struct header1_magic magic;
+  magic.sig1 = sig1;
+  magic.unk2_3 = 2048;
+  magic.unk3_2 = 0;
+  print_header1(&h1, &magic);
+}
+
+static void process_5648(FILE *in) {
+  assert(!is_big_endian(in));
+  struct header1 h1;
+  assert(sizeof(h1) == 0x60); // 6x16
+  fread(&h1, 1, sizeof h1, in);
+
+  struct header1_magic magic;
+  magic.sig1 = sig1;
+  magic.unk2_3 = 2 * 2048;
+  magic.unk3_2 = 0;
+  print_header1(&h1, &magic);
+}
+
+static void process_7336(FILE *in) {
+  assert(!is_big_endian(in));
+  struct header1 h1;
+  assert(sizeof(h1) == 0x60); // 6x16
+  fread(&h1, 1, sizeof h1, in);
+
+  struct header1_magic magic;
+  magic.sig1 = sig1;
+  magic.unk2_3 = 2048;
+  magic.unk3_2 = 0;
+  print_header1(&h1, &magic);
+}
+
+static void process_7480(FILE *in) {
+  assert(!is_big_endian(in));
+  struct header1 h1;
+  assert(sizeof(h1) == 0x60); // 6x16
+  fread(&h1, 1, sizeof h1, in);
+
+  struct header1_magic magic;
+  magic.sig1 = sig2;
+  magic.unk2_3 = 2 * 2048;
+  magic.unk3_2 = 12;
+  print_header1(&h1, &magic);
 }
 
 int main(int argc, char *argv[]) {
@@ -159,6 +219,15 @@ int main(int argc, char *argv[]) {
     break;
   case 3600:
     process_3600(in);
+    break;
+  case 5648:
+    process_5648(in);
+    break;
+  case 7336:
+    process_7336(in);
+    break;
+  case 7480:
+    process_7480(in);
     break;
   default:
     ret = 1;
