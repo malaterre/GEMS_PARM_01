@@ -135,18 +135,22 @@ static void process_2420(FILE *in) {
   bswap_vect(h1.unk5, sizeof h1.unk1);
   bswap_vect(h1.unk6, sizeof h1.unk1);
 
-  struct header1_magic magic;
-  magic.sig1 = sig1;
-  magic.unk2_3 = 2048;
-  magic.unk3_2 = 8;
-  print_header1(&h1, &magic);
+  // group 1, 364 bytes
+  long pos;
+  {
+    struct header1_magic magic;
+    magic.sig1 = sig1;
+    magic.unk2_3 = 2048;
+    magic.unk3_2 = 8;
+    print_header1(&h1, &magic);
 
-  char buf[268];
-  nread = fread(buf, 1, sizeof buf, in);
-  assert(nread == sizeof buf);
-  long pos = ftell(in);
-  assert(sizeof buf == sizeof zero268);
-  assert(memcmp(buf, zero268, sizeof buf) == 0);
+    char buf[268];
+    nread = fread(buf, 1, sizeof buf, in);
+    assert(nread == sizeof buf);
+    pos = ftell(in);
+    assert(sizeof buf == sizeof zero268);
+    assert(memcmp(buf, zero268, sizeof buf) == 0);
+  }
 
   pos = ftell(in);
   //  printf("D: %ld\n", pos);
@@ -157,20 +161,47 @@ static void process_2420(FILE *in) {
   char buf2[34];
   nread = fread(buf2, 1, sizeof buf2, in);
   assert(nread == sizeof buf2);
+  const char *cur = buf2;
+  size_t len = strnlen(cur, sizeof buf2);
+  printf("buf2: %.*s\n", len, cur);
+  assert(len == 4 || len == 5);
+  cur += 7;
+  assert(*cur != 0);
+  len = strnlen(cur, sizeof buf2 - (cur - buf2));
+  printf("buf2: %.*s\n", len, cur);
+  assert(len == 8);
+  cur += 7;
+  assert(*cur != 0);
+  len = strnlen(cur, sizeof buf2 - (cur - buf2));
+  printf("buf2: %.*s\n", len, cur);
+  assert(len == 1);
+  cur += 2;
+  assert(*cur != 0);
+  len = strnlen(cur, sizeof buf2 - (cur - buf2));
+  printf("buf2: %.*s\n", len, cur);
+  assert(len == 5);
+  cur += 8;
+  assert(*cur != 0);
+  len = strnlen(cur, sizeof buf2 - (cur - buf2));
+  printf("buf2: %.*s\n", len, cur);
+  assert(len == 10);
 
   uint32_t buf3[44];
   nread = fread(buf3, 1, sizeof buf3, in);
   assert(nread == sizeof buf3);
+  bswap_vect(buf3, sizeof buf3);
 
-  char buf4[184];
+  pos = ftell(in);
+  // printf("D: 0x%lx\n", pos);
+  float buf4[46];
   nread = fread(buf4, 1, sizeof buf4, in);
   assert(nread == sizeof buf4);
-  assert(sizeof buf4 <= sizeof zero268);
-  assert(memcmp(buf4, zero268, sizeof buf4) == 0);
+  bswap_vect(buf4, sizeof buf4);
 
   uint32_t buf5[14];
   nread = fread(buf5, 1, sizeof buf5, in);
   assert(nread == sizeof buf5);
+  bswap_vect(buf5, sizeof buf5);
 
   char buf6[268];
   nread = fread(buf6, 1, sizeof buf6, in);
@@ -179,7 +210,6 @@ static void process_2420(FILE *in) {
   assert(memcmp(buf6, zero268, sizeof buf6) == 0);
 
   pos = ftell(in);
-  //  printf("D: %ld\n", pos);
   float buf7[57];
   nread = fread(buf7, 1, sizeof buf7, in);
   assert(nread == sizeof buf7);
@@ -191,21 +221,25 @@ static void process_2420(FILE *in) {
   assert(sizeof buf8 <= sizeof zero268);
   assert(memcmp(buf8, zero268, sizeof buf8) == 0);
 
-  uint32_t buf9[23];
+  uint32_t buf9[57];
   nread = fread(buf9, 1, sizeof buf9, in);
   assert(nread == sizeof buf9);
+  bswap_vect(buf9, sizeof buf9);
 
-  char buf10[844];
+  pos = ftell(in);
+  //  printf("D: %ld\n", pos);
+  char buf10[708];
   nread = fread(buf10, 1, sizeof buf10, in);
   assert(nread == sizeof buf10);
   for (int i = 0; i < 4; ++i) {
-    assert(memcmp(buf10 + i * 211, zero268, 211) == 0);
+    assert(memcmp(buf10 + i * 177, zero268, 177) == 0);
   }
 
   uint32_t buf11[1];
   nread = fread(buf11, 1, sizeof buf11, in);
   assert(nread == sizeof buf11);
-  assert(buf11[0] == 512);
+  bswap_vect(buf11, sizeof buf11);
+  assert(buf11[0] == 131072 || buf11[0] == 524288);
 
   pos = ftell(in);
   //  printf("cur: %ld\n", pos);
