@@ -118,6 +118,8 @@ void print_header1(struct header1 *h1, const struct header1_magic *magic) {
 static const uint32_t sig1[] = {1430323200, 44, 131072, 44};
 static const uint32_t sig2[] = {1430323200, 56, 131072, 56};
 
+static const char zero268[268];
+
 static void process_2420(FILE *in) {
   assert(is_big_endian(in));
   struct header1 h1;
@@ -135,6 +137,11 @@ static void process_2420(FILE *in) {
   magic.unk2_3 = 2048;
   magic.unk3_2 = 8;
   print_header1(&h1, &magic);
+
+  char buf[268];
+  fread(buf, 1, sizeof buf, in);
+  assert(sizeof buf == sizeof zero268);
+  assert(memcmp(buf, zero268, sizeof buf));
 }
 
 static void process_2428(FILE *in) {
@@ -159,7 +166,7 @@ static void process_3600(FILE *in) {
   struct header1_magic magic;
   magic.sig1 = sig1;
   magic.unk2_3 = 2048;
-  magic.unk3_2 = 0;
+  magic.unk3_2 = 8;
   print_header1(&h1, &magic);
 }
 
@@ -172,7 +179,7 @@ static void process_5648(FILE *in) {
   struct header1_magic magic;
   magic.sig1 = sig1;
   magic.unk2_3 = 2 * 2048;
-  magic.unk3_2 = 0;
+  magic.unk3_2 = 8;
   print_header1(&h1, &magic);
 }
 
@@ -185,7 +192,7 @@ static void process_7336(FILE *in) {
   struct header1_magic magic;
   magic.sig1 = sig1;
   magic.unk2_3 = 2048;
-  magic.unk3_2 = 0;
+  magic.unk3_2 = 8;
   print_header1(&h1, &magic);
 }
 
