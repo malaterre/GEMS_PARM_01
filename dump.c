@@ -109,11 +109,11 @@ void print_header1(struct header1 *h1, const struct header1_magic *magic) {
   // assert(0x0 == h1->unk3[3]);
 
   // unk4 / unk5:
-  assert(vect_equal(h1->unk4, h1->unk5, sizeof h1->unk4));
+  // assert(vect_equal(h1->unk4, h1->unk5, sizeof h1->unk4));
 
   // unk6:
   assert(0x0 == h1->unk6[1]);
-  assert(0x2 == h1->unk6[3]);
+  // assert(0x2 == h1->unk6[3]);
 }
 
 static const uint32_t sig1[] = {1430323200, 44, 131072, 44};
@@ -217,12 +217,14 @@ static void process_2420(FILE *in) {
   assert(memcmp(buf6, zero268, sizeof buf6) == 0);
 
   pos = ftell(in);
-  float buf7[57];
+  float buf7[65];
   nread = fread(buf7, 1, sizeof buf7, in);
   assert(nread == sizeof buf7);
   bswap_vect(buf7, sizeof buf7);
 
-  char buf8[160];
+  pos = ftell(in);
+  printf("D: %lx\n", pos);
+  char buf8[128];
   nread = fread(buf8, 1, sizeof buf8, in);
   assert(nread == sizeof buf8);
   assert(sizeof buf8 <= sizeof zero268);
@@ -254,6 +256,32 @@ static void process_2420(FILE *in) {
 }
 
 static void process_2428(FILE *in) {
+  assert(!is_big_endian(in));
+  struct header1 h1;
+  assert(sizeof(h1) == 0x60); // 6x16
+  fread(&h1, 1, sizeof h1, in);
+
+  struct header1_magic magic;
+  magic.sig1 = sig1;
+  magic.unk2_3 = 2048;
+  magic.unk3_2 = 8;
+  print_header1(&h1, &magic);
+}
+
+static void process_2432(FILE *in) {
+  assert(!is_big_endian(in));
+  struct header1 h1;
+  assert(sizeof(h1) == 0x60); // 6x16
+  fread(&h1, 1, sizeof h1, in);
+
+  struct header1_magic magic;
+  magic.sig1 = sig1;
+  magic.unk2_3 = 2048;
+  magic.unk3_2 = 8;
+  print_header1(&h1, &magic);
+}
+
+static void process_2436(FILE *in) {
   assert(!is_big_endian(in));
   struct header1 h1;
   assert(sizeof(h1) == 0x60); // 6x16
@@ -300,7 +328,7 @@ static void process_7336(FILE *in) {
 
   struct header1_magic magic;
   magic.sig1 = sig1;
-  magic.unk2_3 = 2048;
+  magic.unk2_3 = 2 * 2048;
   magic.unk3_2 = 8;
   print_header1(&h1, &magic);
 }
@@ -313,9 +341,10 @@ static void process_7480(FILE *in) {
 
   struct header1_magic magic;
   magic.sig1 = sig2;
+  magic.sig1 = sig1;
   magic.unk2_3 = 2 * 2048;
   magic.unk3_2 = 12;
-  print_header1(&h1, &magic);
+  //  print_header1(&h1, &magic);
 }
 
 int main(int argc, char *argv[]) {
@@ -332,6 +361,12 @@ int main(int argc, char *argv[]) {
     break;
   case 2428:
     process_2428(in);
+    break;
+  case 2432:
+    process_2432(in);
+    break;
+  case 2436:
+    process_2436(in);
     break;
   case 3600:
     process_3600(in);
