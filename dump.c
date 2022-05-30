@@ -89,7 +89,7 @@ void print_vect(const uint32_t *vect, const size_t size) {
   for (size_t n = 0; n < nelem; ++n) {
     if (n)
       printf(",");
-    printf("%d", vect[n]);
+    printf("%u", vect[n]);
   }
   printf("\n");
 }
@@ -103,12 +103,19 @@ struct header1_magic {
 
 void print_header1(struct header1 *h1, const struct header1_magic *magic) {
 
+  printf("g1-04 ");
   print_vect(h1->unk1, sizeof h1->unk1);
+  printf("g1-08 ");
   print_vect(h1->unk2, sizeof h1->unk1);
+  printf("g1-12 ");
   print_vect(h1->unk3, sizeof h1->unk1);
+  printf("g1-16 ");
   print_vect(h1->unk4, sizeof h1->unk1);
+  printf("g1-20 ");
   print_vect(h1->unk5, sizeof h1->unk1);
+  printf("g1-24 ");
   print_vectf(h1->unk6_1, sizeof h1->unk6_1);
+  printf("g1-28 ");
   print_vect(h1->unk6_2, sizeof h1->unk6_2);
 
   // 1: 1430323200,44,131072,44
@@ -129,11 +136,13 @@ void print_header1(struct header1 *h1, const struct header1_magic *magic) {
   assert(vect_equal(h1->unk1, magic->sig1, sizeof h1->unk1));
 
   // unk2:
+  assert(h1->unk2[0] + 44 == h1->unk2[2]); // 2048 - 4096
   assert(0x10000 == h1->unk2[1]);
   assert(magic->unk2_3 == h1->unk2[3]); // 2048 - 4096
   // assert(magic->unk6_1 == h1->unk6[1]); // 0x0
 
   // unk3:
+  assert(0x30000 == h1->unk3[0]);       // 196608
   assert(magic->unk3_2 == h1->unk3[2]); // 8 - 12
   // assert(0x0 == h1->unk3[3]);
 
@@ -141,6 +150,7 @@ void print_header1(struct header1 *h1, const struct header1_magic *magic) {
   assert(vect_equal(h1->unk4, h1->unk5, sizeof h1->unk4));
 
   // unk6:
+  assert(0 <= h1->unk6_1[0] && h1->unk6_1[0] <= 100);
   assert(0x0 == h1->unk6_1[1]);
   // assert(0x2 == h1->unk6[3]);
 
@@ -299,32 +309,39 @@ static void process_2420(FILE *in) {
     assert(memcmp(buf6, zero268, sizeof buf6) == 0);
   }
 
-  pos = ftell(in);
-  float buf7[65];
-  nread = fread(buf7, 1, sizeof buf7, in);
-  assert(nread == sizeof buf7);
-  bswap_vect(buf7, sizeof buf7);
+  // group 4 - 388 bytes
+  {
+    pos = ftell(in);
+    float buf7[65];
+    nread = fread(buf7, 1, sizeof buf7, in);
+    assert(nread == sizeof buf7);
+    bswap_vect(buf7, sizeof buf7);
 
-  pos = ftell(in);
-  printf("D: %lx\n", pos);
-  char buf8[128];
-  nread = fread(buf8, 1, sizeof buf8, in);
-  assert(nread == sizeof buf8);
-  assert(sizeof buf8 <= sizeof zero268);
-  assert(memcmp(buf8, zero268, sizeof buf8) == 0);
+    pos = ftell(in);
+    printf("D: %lx\n", pos);
+    char buf8[128];
+    nread = fread(buf8, 1, sizeof buf8, in);
+    assert(nread == sizeof buf8);
+    assert(sizeof buf8 <= sizeof zero268);
+    assert(memcmp(buf8, zero268, sizeof buf8) == 0);
+  }
 
-  uint32_t buf9[57];
-  nread = fread(buf9, 1, sizeof buf9, in);
-  assert(nread == sizeof buf9);
-  bswap_vect(buf9, sizeof buf9);
+  // group 5 - 936 bytes
+  {
+    uint32_t buf9[57];
+    nread = fread(buf9, 1, sizeof buf9, in);
+    assert(nread == sizeof buf9);
+    bswap_vect(buf9, sizeof buf9);
 
-  pos = ftell(in);
-  //  printf("D: %ld\n", pos);
-  char buf10[708];
-  nread = fread(buf10, 1, sizeof buf10, in);
-  assert(nread == sizeof buf10);
-  for (int i = 0; i < 4; ++i) {
-    assert(memcmp(buf10 + i * 177, zero268, 177) == 0);
+    pos = ftell(in);
+    //  printf("D: %ld\n", pos);
+    char buf10[708];
+    nread = fread(buf10, 1, sizeof buf10, in);
+    assert(nread == sizeof buf10);
+    assert(4 * 177 == sizeof buf10);
+    for (int i = 0; i < 4; ++i) {
+      assert(memcmp(buf10 + i * 177, zero268, 177) == 0);
+    }
   }
 
   uint32_t buf11[1];
