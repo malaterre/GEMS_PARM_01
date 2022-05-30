@@ -53,8 +53,36 @@ struct header1 {
   uint32_t unk3[4];
   uint32_t unk4[4];
   uint32_t unk5[4];
-  uint32_t unk6[4];
+  float unk6_1[2];
+  uint32_t unk6_2[2];
 };
+
+//  unk4 = {11, 14, 108, 638657030}, unk5 = {11, 14, 108, 638657030}, unk6_1 =
+//  {0.682666659, 0}, unk6_2 = { 2147483647, 2}
+
+// unk4 = {11, 15, 140, 638521390}, unk5 = {11, 15, 140, 638521390}, unk6_1 =
+// {0.922358513, 0}, unk6_2 = { 262379900, 2}
+struct trailer_magic1 {
+  uint32_t unk4[4];
+  uint32_t unk5[4];
+  float unk6_1[2];
+  uint32_t unk6_2[2];
+};
+
+static const struct trailer_magic1 tmagic1 = {.unk4 = {11, 14, 108, 638657030},
+                                              .unk5 = {11, 14, 108, 638657030},
+                                              .unk6_1 = {0.682666659, 0},
+                                              .unk6_2 = {2147483647, 2}};
+
+void print_vectf(const float *vect, const size_t size) {
+  const size_t nelem = size / sizeof(*vect);
+  for (size_t n = 0; n < nelem; ++n) {
+    if (n)
+      printf(",");
+    printf("%f", vect[n]);
+  }
+  printf("\n");
+}
 
 void print_vect(const uint32_t *vect, const size_t size) {
   const size_t nelem = size / sizeof(*vect);
@@ -80,7 +108,8 @@ void print_header1(struct header1 *h1, const struct header1_magic *magic) {
   print_vect(h1->unk3, sizeof h1->unk1);
   print_vect(h1->unk4, sizeof h1->unk1);
   print_vect(h1->unk5, sizeof h1->unk1);
-  print_vect(h1->unk6, sizeof h1->unk1);
+  print_vectf(h1->unk6_1, sizeof h1->unk6_1);
+  print_vect(h1->unk6_2, sizeof h1->unk6_2);
 
   // 1: 1430323200,44,131072,44
   // 2: 320,65536,364,2048
@@ -109,11 +138,18 @@ void print_header1(struct header1 *h1, const struct header1_magic *magic) {
   // assert(0x0 == h1->unk3[3]);
 
   // unk4 / unk5:
-  // assert(vect_equal(h1->unk4, h1->unk5, sizeof h1->unk4));
+  assert(vect_equal(h1->unk4, h1->unk5, sizeof h1->unk4));
 
   // unk6:
-  assert(0x0 == h1->unk6[1]);
+  assert(0x0 == h1->unk6_1[1]);
   // assert(0x2 == h1->unk6[3]);
+
+#if 0
+  assert(vect_equal(h1->unk4, tmagic1.unk4, sizeof tmagic1.unk4));
+  assert(vect_equal(h1->unk5, tmagic1.unk5, sizeof tmagic1.unk5));
+  assert(vect_equal(h1->unk6_1, tmagic1.unk6_1, sizeof tmagic1.unk6_1));
+  assert(vect_equal(h1->unk6_2, tmagic1.unk6_2, sizeof tmagic1.unk6_2));
+#endif
 }
 
 static const uint32_t sig1[] = {1430323200, 44, 131072, 44};
@@ -134,14 +170,22 @@ struct S0 {
   char s5[10];
 };
 
+struct S1 {
+  float unk1[2];
+  uint32_t unk2[4];
+  uint32_t unk3[4];
+  float unk4[2];
+  uint32_t unk5[2];
+};
+
 static void process_2420(FILE *in) {
   size_t nread;
   long pos;
   assert(is_big_endian(in));
 
   // group 1, 364 bytes
+  struct header1 h1;
   {
-    struct header1 h1;
     assert(sizeof(h1) == 0x60); // 6x16
     nread = fread(&h1, 1, sizeof h1, in);
     assert(nread == sizeof h1);
@@ -150,7 +194,8 @@ static void process_2420(FILE *in) {
     bswap_vect(h1.unk3, sizeof h1.unk1);
     bswap_vect(h1.unk4, sizeof h1.unk1);
     bswap_vect(h1.unk5, sizeof h1.unk1);
-    bswap_vect(h1.unk6, sizeof h1.unk1);
+    bswap_vect(h1.unk6_1, sizeof h1.unk6_1);
+    bswap_vect(h1.unk6_2, sizeof h1.unk6_2);
 
     struct header1_magic magic;
     magic.sig1 = sig1;
@@ -166,8 +211,9 @@ static void process_2420(FILE *in) {
     assert(memcmp(buf, zero268, sizeof buf) == 0);
   }
 
-  // group 2, 10 bytes:
+  // group 2 - 364 bytes
   {
+    // 10 bytes
     unsigned char buf1[10];
     nread = fread(buf1, 1, sizeof buf1, in);
     assert(nread == sizeof buf1);
@@ -183,10 +229,8 @@ static void process_2420(FILE *in) {
     // assert(buf1[9] == 0 );
     printf("g2-10: %u - %02x - %02x %u - %02x %u\n", buf1[0], buf1[1], buf1[6],
            buf1[6], buf1[9], buf1[9]);
-  }
 
-  // group 2, 34 bytes:
-  {
+    // 34 bytes:
     struct S0 s0;
     assert(sizeof s0 == 34);
     nread = fread(&s0, 1, sizeof s0, in);
@@ -196,29 +240,64 @@ static void process_2420(FILE *in) {
            strnlen(s0.s3, sizeof s0.s3), s0.s3, //
            strnlen(s0.s4, sizeof s0.s4), s0.s4, //
            strnlen(s0.s5, sizeof s0.s5), s0.s5);
+
+    // 176 bytes
+    uint32_t buf3[44];
+    nread = fread(buf3, 1, sizeof buf3, in);
+    assert(nread == sizeof buf3);
+    bswap_vect(buf3, sizeof buf3);
+
+    pos = ftell(in);
+    float buf4[46 - 10];
+    nread = fread(buf4, 1, sizeof buf4, in);
+    assert(nread == sizeof buf4);
+    bswap_vect(buf4, sizeof buf4);
   }
 
-  uint32_t buf3[44];
-  nread = fread(buf3, 1, sizeof buf3, in);
-  assert(nread == sizeof buf3);
-  bswap_vect(buf3, sizeof buf3);
+  // group 3 - 364 bytes
+  {
+    float buf4[10];
+    nread = fread(buf4, 1, sizeof buf4, in);
+    assert(nread == sizeof buf4);
+    bswap_vect(buf4, sizeof buf4);
+    assert(memcmp(buf4 + 1, zero268, sizeof buf4 - sizeof *buf4) == 0);
+    printf("g3-10: %f\n", buf4[0]);
 
-  pos = ftell(in);
-  float buf4[46];
-  nread = fread(buf4, 1, sizeof buf4, in);
-  assert(nread == sizeof buf4);
-  bswap_vect(buf4, sizeof buf4);
+    uint32_t buf5[14];
+    nread = fread(buf5, 1, sizeof buf5, in);
+    assert(nread == sizeof buf5);
+    bswap_vect(buf5, sizeof buf5);
+    // {1065353216, 0, 11, 14, 108, 638657030, 11, 14, 108, 638657030,
+    // 1060029246, 0, 2147483647, 2}
+    struct S1 s1;
+    size_t l = sizeof s1;
+    assert(sizeof s1 == 14 * 4);
+    memcpy(&s1, buf5, sizeof s1);
+    assert(vect_equal(h1.unk4, s1.unk2, sizeof h1.unk4));
+    assert(vect_equal(h1.unk4, s1.unk3, sizeof h1.unk4));
+    assert(s1.unk5[0] == 0x7fffffff || s1.unk5[0] == 0xfa3997c ||
+           s1.unk5[0] == 0);
+    assert(s1.unk5[1] == 2);
+    printf("g3-14: %f - %f / %f %f \n", s1.unk1[0], s1.unk1[1], s1.unk4[0],
+           s1.unk4[1]);
+#if 0
+    assert(vect_equal(s1.unk2, tmagic1.unk4, sizeof tmagic1.unk4));
+    assert(vect_equal(s1.unk3, tmagic1.unk5, sizeof tmagic1.unk5));
+    assert(vect_equal(s1.unk4, tmagic1.unk6_1, sizeof tmagic1.unk6_1));
+    assert(vect_equal(s1.unk5, tmagic1.unk6_2, sizeof tmagic1.unk6_1));
+#else
+    assert(vect_equal(s1.unk2, h1.unk4, sizeof tmagic1.unk4));
+    assert(vect_equal(s1.unk3, h1.unk5, sizeof tmagic1.unk5));
+    assert(vect_equal(s1.unk4, h1.unk6_1, sizeof tmagic1.unk6_1));
+    assert(vect_equal(s1.unk5, h1.unk6_2, sizeof tmagic1.unk6_1));
+#endif
 
-  uint32_t buf5[14];
-  nread = fread(buf5, 1, sizeof buf5, in);
-  assert(nread == sizeof buf5);
-  bswap_vect(buf5, sizeof buf5);
-
-  char buf6[268];
-  nread = fread(buf6, 1, sizeof buf6, in);
-  assert(nread == sizeof buf6);
-  assert(sizeof buf6 == sizeof zero268);
-  assert(memcmp(buf6, zero268, sizeof buf6) == 0);
+    char buf6[268];
+    nread = fread(buf6, 1, sizeof buf6, in);
+    assert(nread == sizeof buf6);
+    assert(sizeof buf6 == sizeof zero268);
+    assert(memcmp(buf6, zero268, sizeof buf6) == 0);
+  }
 
   pos = ftell(in);
   float buf7[65];
